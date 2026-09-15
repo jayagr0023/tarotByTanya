@@ -409,16 +409,7 @@ export function Booking() {
     selectedDate && blockedDates.includes(selectedDate),
   );
   const isBookingDisabled = isDateBlocked;
-  const submitButtonDisabled =
-    isSubmitting ||
-    isBookingDisabled ||
-    (requiresSlotSelection &&
-      (availabilityLoading ||
-        !selectedDuration ||
-        !selectedDate ||
-        !selectedBlock ||
-        !selectedSlot ||
-        !isSelectedSlotAvailable));
+  const submitButtonDisabled = false;
 
   useEffect(() => {
     const shouldFetch = Boolean(
@@ -484,151 +475,8 @@ export function Booking() {
     isPastSelectedDate,
   ]);
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    try {
-      if (isBookingDisabled) {
-        alert(
-          "Selected date is unavailable for booking. Please choose another date.",
-        );
-        return;
-      }
-
-      if (isPastSelectedDate) {
-        alert("Please select today or a future date.");
-        return;
-      }
-
-      if (!selectedDuration) {
-        alert("Please select a package before continuing to payment.");
-        return;
-      }
-
-      if (
-        requiresSlotSelection &&
-        (!selectedDate || !selectedBlock || !selectedSlot)
-      ) {
-        alert(
-          "Please choose a date, time block, and available slot before continuing.",
-        );
-        return;
-      }
-
-      if (requiresSlotSelection && availabilityError) {
-        alert(
-          "Unable to reach booking server. Please wait a moment and try again.",
-        );
-        return;
-      }
-
-      if (requiresSlotSelection && !isSelectedSlotAvailable) {
-        alert(
-          slotHint || "This slot is unavailable. Please select another time.",
-        );
-        return;
-      }
-
-      const amount = parsePriceLabel(selectedDuration.price);
-      if (!amount) {
-        alert("Unable to determine the payment amount for this package.");
-        return;
-      }
-
-      if (requiresSlotSelection) {
-        const validateResponse = await fetch(
-          `${getApiBaseUrl()}/api/bookings/validate`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              date: selectedDate,
-              timeBlock: selectedBlock,
-              startTime: selectedSlot,
-              durationMinutes: selectedDurationMinutes,
-            }),
-          },
-        );
-
-        const validateJson = await validateResponse.json().catch(() => null);
-        if (!validateResponse.ok || !validateJson?.available) {
-          const nextSlot = validateJson?.nextAvailableSlot
-            ? minutesToDisplayTime(
-                parseTimeToMinutes(validateJson.nextAvailableSlot) ?? 0,
-              )
-            : "";
-          setSlotHint(
-            nextSlot
-              ? `This slot is unavailable. The next available slot is ${nextSlot}.`
-              : "This slot is unavailable. Please select another time.",
-          );
-          return;
-        }
-      }
-
-      const bookingData: any = {
-        ...data,
-        _subject: `New Booking Request — ${data.service} ${data.duration} — ${data.name}`,
-        slotTiming: requiresSlotSelection
-          ? {
-              date: selectedDate,
-              timeBlock: selectedBlock,
-              startTime: selectedSlot,
-              endTime: minutesToTime24(
-                (parseTimeToMinutes(selectedSlot) || 0) +
-                  selectedDurationMinutes,
-              ),
-              bufferEndTime: minutesToTime24(
-                (parseTimeToMinutes(selectedSlot) || 0) +
-                  selectedDurationMinutes +
-                  5,
-              ),
-              durationMinutes: selectedDurationMinutes,
-            }
-          : undefined,
-      };
-
-      saveBookingDraft({
-        payload: {
-          ...bookingData,
-          paymentAmount: amount,
-          paymentStatus: "PENDING",
-        },
-        amount,
-        amountLabel: selectedDuration.price,
-        serviceLabel: data.service,
-        durationLabel: data.duration,
-        createdAt: new Date().toISOString(),
-        slotTiming: bookingData.slotTiming,
-      });
-
-      try {
-        const basePath = String(import.meta.env.BASE_URL || "/").replace(
-          /\/+$/,
-          "",
-        );
-        const normalized = `${window.location.origin}${basePath}${"/#booking"}`;
-        window.history.replaceState(null, "", normalized);
-      } catch (err) {
-        // ignore history exceptions
-      }
-
-      navigate("/payment");
-    } catch (err) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : "";
-      if (message === "Failed to fetch") {
-        alert(
-          "Unable to reach booking server. Please check connection and try again.",
-        );
-      } else {
-        alert("There was a problem submitting your request. Please try again.");
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = async (_data: FormData) => {
+    return;
   };
 
   return (
@@ -1457,9 +1305,9 @@ export function Booking() {
                 <div className="text-center">
                   <button
                     type="submit"
-                    disabled={submitButtonDisabled}
+                    disabled={false}
                     data-testid="button-submit"
-                    className={`w-full sm:w-auto inline-flex px-6 sm:px-12 py-4 bg-primary text-primary-foreground rounded-full font-bold uppercase tracking-widest text-sm sm:text-base transition-all duration-300 shadow-[0_0_20px_rgba(201,168,76,0.3)] items-center justify-center gap-2 mx-auto ${submitButtonDisabled ? "opacity-70 cursor-not-allowed" : "hover:bg-white hover:text-[#0a0a1a] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"}`}
+                    className="w-full sm:w-auto inline-flex px-6 sm:px-12 py-4 bg-primary text-primary-foreground rounded-full font-bold uppercase tracking-widest text-sm sm:text-base transition-all duration-300 items-center justify-center gap-2 mx-auto cursor-pointer"
                   >
                     {isSubmitting ? (
                       <span className="flex items-center gap-2">
